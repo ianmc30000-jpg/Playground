@@ -1,0 +1,1450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Piano Men Showdown: Billy Joel vs Elton John</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body {
+    background: radial-gradient(ellipse at 50% 20%, #241242 0%, #12081f 55%, #060310 100%);
+    min-height: 100dvh;
+    overflow: hidden;
+    touch-action: none;
+    font-family: 'Arial Black', Arial, sans-serif;
+    color: #ffe9a8;
+  }
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 100dvh;
+    padding: 6px;
+  }
+  #stage {
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  #gameCanvas {
+    display: block;
+    background: #000;
+    border: 3px solid #ffd54a;
+    border-radius: 6px;
+    box-shadow: 0 0 30px #ffd54a55, 0 0 70px #ff2fb033, inset 0 0 40px #00000088;
+  }
+  #muteBtn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    border: 2px solid #ffd54a;
+    background: rgba(20,10,35,0.7);
+    color: #ffd54a;
+    font-size: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 5;
+  }
+  #controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    margin-top: 8px;
+    gap: 10px;
+  }
+  .dpad {
+    display: grid;
+    grid-template-columns: 44px 44px 44px;
+    grid-template-rows: 44px 44px 44px;
+    grid-template-areas:
+      ".    up    ."
+      "left .     right"
+      ".    down  .";
+    gap: 3px;
+  }
+  .dbtn {
+    background: rgba(255,213,74,0.12);
+    border: 2px solid #ffd54a;
+    color: #ffd54a;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    user-select: none;
+    cursor: pointer;
+  }
+  .dbtn:active, .dbtn.pressed { background: rgba(255,213,74,0.4); }
+  #dUp { grid-area: up; }
+  #dDown { grid-area: down; }
+  #dLeft { grid-area: left; }
+  #dRight { grid-area: right; }
+  .atk {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .abtn {
+    width: 62px;
+    height: 44px;
+    border-radius: 10px;
+    border: 2px solid #ff2fb0;
+    background: rgba(255,47,176,0.14);
+    color: #ffdff0;
+    font-size: 12px;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+  }
+  .abtn:active, .abtn.pressed { background: rgba(255,47,176,0.45); }
+  #specialBtn { border-color: #4ad9ff; background: rgba(74,217,255,0.14); }
+  #specialBtn:active, #specialBtn.pressed { background: rgba(74,217,255,0.45); }
+  #overlay {
+    position: fixed;
+    inset: 0;
+    background: radial-gradient(ellipse at 50% 30%, rgba(50,20,80,0.96), rgba(6,3,16,0.98));
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 18px;
+    z-index: 10;
+  }
+  #overlay h1 {
+    font-size: 1.9em;
+    letter-spacing: 1px;
+    color: #ffd54a;
+    text-shadow: 0 0 18px #ffd54a99, 0 0 40px #ff2fb055;
+    line-height: 1.25;
+  }
+  #overlay .sub {
+    margin-top: 8px;
+    color: #ff8fd6;
+    font-size: 0.95em;
+    font-weight: normal;
+    font-family: 'Courier New', monospace;
+  }
+  #overlay .desc {
+    margin-top: 14px;
+    font-size: 0.78em;
+    color: #cbb8ea;
+    font-weight: normal;
+    font-family: 'Courier New', monospace;
+    max-width: 380px;
+    line-height: 1.6;
+  }
+  .modeBtns { display: flex; gap: 14px; margin-top: 20px; flex-wrap: wrap; justify-content: center; }
+  .modeBtn {
+    padding: 14px 22px;
+    font-size: 0.95em;
+    font-family: Arial, sans-serif;
+    font-weight: bold;
+    background: linear-gradient(180deg, #ffd54a, #ff9d2f);
+    color: #2a0f1a;
+    border: none;
+    border-radius: 10px;
+    cursor: pointer;
+    box-shadow: 0 0 18px #ffd54a77;
+    letter-spacing: 1px;
+  }
+  .modeBtn.alt {
+    background: linear-gradient(180deg, #4ad9ff, #2f7dff);
+    color: #04122a;
+    box-shadow: 0 0 18px #4ad9ff77;
+  }
+  .modeBtn:active { transform: scale(0.96); }
+  .keys {
+    margin-top: 16px;
+    font-size: 0.68em;
+    color: #9a86c2;
+    font-family: 'Courier New', monospace;
+    line-height: 1.7;
+  }
+  .keys b { color: #ffd54a; }
+  #controls.hidden-2p { opacity: 0.35; }
+</style>
+</head>
+<body>
+
+<div id="stage">
+  <canvas id="gameCanvas"></canvas>
+  <button id="muteBtn">🔊</button>
+
+  <div id="controls">
+    <div class="dpad">
+      <div class="dbtn" id="dUp">▲</div>
+      <div class="dbtn" id="dLeft">◀</div>
+      <div class="dbtn" id="dRight">▶</div>
+      <div class="dbtn" id="dDown">▼</div>
+    </div>
+    <div class="atk">
+      <div class="abtn" id="punchBtn">👊 PUNCH</div>
+      <div class="abtn" id="kickBtn">🦵 KICK</div>
+      <div class="abtn" id="specialBtn">🎵 NOTES</div>
+    </div>
+  </div>
+</div>
+
+<div id="overlay">
+  <h1>🎹 PIANO MEN SHOWDOWN 🌟</h1>
+  <div class="sub">Billy Joel &nbsp;VS&nbsp; Elton John — Prime Era Duel</div>
+  <div class="desc">
+    Two legends throw down atop a grand piano under the stadium lights.
+    Billy Joel blasts musical notes from his hands. Elton John hurls his
+    star-shaped glasses. Best of 3 rounds wins the show!
+  </div>
+  <div class="modeBtns">
+    <button class="modeBtn" id="btn1p">🎤 1 PLAYER<br><small style="font-weight:normal">vs CPU Elton</small></button>
+    <button class="modeBtn alt" id="btn2p">🎸 2 PLAYER<br><small style="font-weight:normal">local duel</small></button>
+  </div>
+  <div class="keys">
+    <b>P1 Billy:</b> A/D move · W jump · S block/crouch · F punch · G kick · H notes<br>
+    <b>P2 Elton (2P):</b> ←/→ move · ↑ jump · ↓ block/crouch · N punch · M kick · , glasses<br>
+    Touch controls below always drive Player 1.
+  </div>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ============================= Canvas / Scaling ============================= */
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const WORLD_W = 900, WORLD_H = 500;
+
+function resize() {
+  const maxW = Math.min(window.innerWidth - 12, 900);
+  const maxH = Math.min(window.innerHeight - 160, 620);
+  let w = maxW, h = w * (WORLD_H / WORLD_W);
+  if (h > maxH) { h = maxH; w = h * (WORLD_W / WORLD_H); }
+  canvas.width = Math.floor(w);
+  canvas.height = Math.floor(h);
+}
+resize();
+window.addEventListener('resize', resize);
+function S() { return canvas.width / WORLD_W; }
+
+/* ============================= Helpers ============================= */
+function clamp(v, lo, hi) { return Math.max(lo, Math.min(hi, v)); }
+function lerp(a, b, t) { return a + (b - a) * t; }
+function rectOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+  return Math.abs(ax - bx) < (aw + bw) / 2 && Math.abs(ay - by) < (ah + bh) / 2;
+}
+function rr(c, x, y, w, h, r) {
+  if (r > w / 2) r = w / 2;
+  if (r > h / 2) r = h / 2;
+  c.beginPath();
+  c.moveTo(x + r, y);
+  c.arcTo(x + w, y, x + w, y + h, r);
+  c.arcTo(x + w, y + h, x, y + h, r);
+  c.arcTo(x, y + h, x, y, r);
+  c.arcTo(x, y, x + w, y, r);
+  c.closePath();
+}
+function starPath(c, cx, cy, outerR, innerR, points, rot) {
+  c.beginPath();
+  for (let i = 0; i < points * 2; i++) {
+    const ang = rot + (Math.PI / points) * i;
+    const rad = i % 2 === 0 ? outerR : innerR;
+    const px = cx + Math.cos(ang) * rad, py = cy + Math.sin(ang) * rad;
+    if (i === 0) c.moveTo(px, py); else c.lineTo(px, py);
+  }
+  c.closePath();
+}
+function rand(a, b) { return a + Math.random() * (b - a); }
+
+/* ============================= Audio (synth, no assets) ============================= */
+let audioCtx = null, muted = false;
+function ensureAudio() { if (!audioCtx) { try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) {} } }
+function tone(freq, dur, type, vol, delay) {
+  if (muted || !audioCtx) return;
+  const t0 = audioCtx.currentTime + (delay || 0);
+  const osc = audioCtx.createOscillator();
+  const gain = audioCtx.createGain();
+  osc.type = type || 'square';
+  osc.frequency.setValueAtTime(freq, t0);
+  gain.gain.setValueAtTime(0, t0);
+  gain.gain.linearRampToValueAtTime(vol || 0.15, t0 + 0.01);
+  gain.gain.exponentialRampToValueAtTime(0.001, t0 + dur);
+  osc.connect(gain).connect(audioCtx.destination);
+  osc.start(t0);
+  osc.stop(t0 + dur + 0.02);
+}
+const sfx = {
+  punch() { tone(140, 0.09, 'square', 0.18); },
+  kick() { tone(90, 0.14, 'square', 0.2); },
+  hit() { tone(220, 0.1, 'sawtooth', 0.15); tone(90, 0.12, 'square', 0.12, 0.02); },
+  block() { tone(500, 0.06, 'triangle', 0.12); },
+  note() { const notes = [523, 587, 659, 784]; notes.forEach((f, i) => tone(f, 0.18, 'triangle', 0.12, i * 0.03)); },
+  glasses() { tone(300, 0.05, 'sawtooth', 0.14); tone(700, 0.12, 'sawtooth', 0.1, 0.03); },
+  jump() { tone(400, 0.08, 'sine', 0.1); },
+  ko() { tone(180, 0.5, 'sawtooth', 0.2); tone(90, 0.6, 'square', 0.18, 0.1); },
+  roundWin() { [523, 659, 784, 1046].forEach((f, i) => tone(f, 0.22, 'triangle', 0.14, i * 0.09)); },
+};
+document.getElementById('muteBtn').addEventListener('click', () => {
+  muted = !muted;
+  document.getElementById('muteBtn').textContent = muted ? '🔇' : '🔊';
+});
+
+/* ============================= Game State ============================= */
+let gameState = 'menu'; // menu, intro, fight, roundend, matchend
+let gameMode = '1p';
+let round = 1;
+let roundTimer = 60;
+let stateTimer = 0;      // generic countdown used by intro/roundend
+let inputLocked = false;
+let fightBanner = 0;     // "FIGHT!" banner fade timer
+let roundBanner = '';    // text shown at round end
+let matchWinnerName = '';
+let hitstop = 0;
+let shakeTimer = 0, shakeMag = 0;
+let animFrame = null, lastTime = 0;
+
+let projectiles = [];
+let particles = [];
+let confetti = [];
+
+const inputs = {
+  p1: { left: false, right: false, up: false, down: false, punch: false, kick: false, special: false },
+  p2: { left: false, right: false, up: false, down: false, punch: false, kick: false, special: false },
+};
+// edge-triggered "just pressed" tracking
+const prevPressed = { p1: {}, p2: {} };
+
+/* ============================= World constants ============================= */
+const GROUND_Y = 358;
+const MIN_X = 130, MAX_X = 770;
+const GRAVITY = 2300;
+const JUMP_V = -800;
+const MOVE_SPEED = 230;
+
+const DURATIONS = { punch: 300, kick: 420, special: 480, hurt: 380, block_hit: 200 };
+const ACTIVE = {
+  punch: [0.28, 0.55],
+  kick: [0.35, 0.7],
+  special: [0.35, 0.5],
+};
+
+/* ============================= Character Factory ============================= */
+function makeFighter(name, side, color) {
+  return {
+    name, side, color,
+    x: side === 'left' ? 300 : 600,
+    y: GROUND_Y,
+    vy: 0,
+    facing: side === 'left' ? 1 : -1,
+    grounded: true,
+    state: 'idle',
+    stateT: 0,
+    walkPhase: 0,
+    health: 100,
+    displayHealth: 100,
+    wins: 0,
+    hasHitThisAttack: false,
+    specialCd: 0,
+    hurtFlash: 0,
+    koFall: 0,
+    bobPhase: Math.random() * 10,
+  };
+}
+let p1 = makeFighter('BILLY JOEL', 'left', 'billy');
+let p2 = makeFighter('ELTON JOHN', 'right', 'elton');
+
+/* ============================= AI (controls p2 in 1P mode) ============================= */
+let ai = { decisionT: 0, wantPunch: false, wantKick: false, wantSpecial: false, wantJump: false, moveDir: 0, blockT: 0 };
+
+function updateAI(dt) {
+  const k = inputs.p2;
+  k.left = k.right = k.up = k.down = k.punch = k.kick = k.special = false;
+  if (inputLocked || p2.state === 'ko' || p1.state === 'ko') return;
+
+  ai.decisionT -= dt;
+  const dx = p1.x - p2.x;
+  const dist = Math.abs(dx);
+  const aggro = 0.4 + round * 0.12;
+
+  if (ai.decisionT <= 0) {
+    ai.decisionT = rand(0.18, 0.4);
+    ai.moveDir = 0;
+    ai.wantJump = Math.random() < 0.05;
+    ai.wantPunch = ai.wantKick = ai.wantSpecial = false;
+    ai.blockT = 0;
+
+    if (dist > 260 && p2.specialCd <= 0 && Math.random() < 0.5 * aggro) {
+      ai.wantSpecial = true;
+    } else if (dist > 110) {
+      ai.moveDir = dx > 0 ? 1 : -1;
+    } else if (dist < 60) {
+      const r = Math.random();
+      if (r < 0.3 * aggro) ai.wantPunch = true;
+      else if (r < 0.55 * aggro) ai.wantKick = true;
+      else if (r < 0.7) ai.blockT = rand(0.3, 0.6);
+      else ai.moveDir = -1; // step back
+    } else {
+      const r = Math.random();
+      if (r < 0.35 * aggro) ai.moveDir = dx > 0 ? 1 : -1;
+      else if (r < 0.55 * aggro) ai.wantPunch = true;
+      else if (r < 0.4 + 0.3 * aggro) ai.wantKick = true;
+      else ai.blockT = rand(0.2, 0.4);
+    }
+  }
+
+  if (ai.blockT > 0) { ai.blockT -= dt; k.down = true; }
+  if (ai.moveDir < 0) k.left = true;
+  if (ai.moveDir > 0) k.right = true;
+  if (ai.wantJump) { k.up = true; ai.wantJump = false; }
+  if (ai.wantPunch) { k.punch = true; ai.wantPunch = false; }
+  if (ai.wantKick) { k.kick = true; ai.wantKick = false; }
+  if (ai.wantSpecial) { k.special = true; ai.wantSpecial = false; }
+}
+
+/* ============================= Input handling ============================= */
+const KEY_MAP_P1 = { KeyA: 'left', KeyD: 'right', KeyW: 'up', KeyS: 'down', KeyF: 'punch', KeyG: 'kick', KeyH: 'special' };
+const KEY_MAP_P2 = { ArrowLeft: 'left', ArrowRight: 'right', ArrowUp: 'up', ArrowDown: 'down', KeyN: 'punch', KeyM: 'kick', Comma: 'special' };
+
+window.addEventListener('keydown', e => {
+  if (KEY_MAP_P1[e.code]) { inputs.p1[KEY_MAP_P1[e.code]] = true; e.preventDefault(); ensureAudio(); }
+  if (gameMode === '2p' && KEY_MAP_P2[e.code]) { inputs.p2[KEY_MAP_P2[e.code]] = true; e.preventDefault(); }
+});
+window.addEventListener('keyup', e => {
+  if (KEY_MAP_P1[e.code]) { inputs.p1[KEY_MAP_P1[e.code]] = false; }
+  if (gameMode === '2p' && KEY_MAP_P2[e.code]) { inputs.p2[KEY_MAP_P2[e.code]] = false; }
+});
+
+function bindTouch(id, key) {
+  const el = document.getElementById(id);
+  const set = (v) => { inputs.p1[key] = v; el.classList.toggle('pressed', v); };
+  el.addEventListener('touchstart', e => { e.preventDefault(); ensureAudio(); set(true); }, { passive: false });
+  el.addEventListener('touchend', e => { e.preventDefault(); set(false); }, { passive: false });
+  el.addEventListener('touchcancel', e => { set(false); }, { passive: false });
+  el.addEventListener('mousedown', () => { ensureAudio(); set(true); });
+  el.addEventListener('mouseup', () => set(false));
+  el.addEventListener('mouseleave', () => set(false));
+}
+bindTouch('dLeft', 'left');
+bindTouch('dRight', 'right');
+bindTouch('dUp', 'up');
+bindTouch('dDown', 'down');
+bindTouch('punchBtn', 'punch');
+bindTouch('kickBtn', 'kick');
+bindTouch('specialBtn', 'special');
+
+/* ============================= Flow control ============================= */
+document.getElementById('btn1p').addEventListener('click', () => { ensureAudio(); startMatch('1p'); });
+document.getElementById('btn2p').addEventListener('click', () => { ensureAudio(); startMatch('2p'); });
+
+function startMatch(mode) {
+  gameMode = mode;
+  document.getElementById('controls').classList.toggle('hidden-2p', mode === '2p');
+  document.getElementById('overlay').style.display = 'none';
+  round = 1;
+  p1.wins = 0; p2.wins = 0;
+  confetti = [];
+  showVSIntro();
+  if (!animFrame) { lastTime = performance.now(); animFrame = requestAnimationFrame(loop); }
+}
+
+function resetFighters() {
+  p1 = makeFighter('BILLY JOEL', 'left', 'billy');
+  p2 = makeFighter('ELTON JOHN', 'right', 'elton');
+  p1.wins = arguments.length ? p1.wins : p1.wins;
+}
+
+function startRound() {
+  const w1 = p1.wins, w2 = p2.wins;
+  p1 = makeFighter('BILLY JOEL', 'left', 'billy'); p1.wins = w1;
+  p2 = makeFighter('ELTON JOHN', 'right', 'elton'); p2.wins = w2;
+  projectiles = [];
+  particles = [];
+  roundTimer = 60;
+  inputLocked = true;
+  fightBanner = 1.1;
+  gameState = 'fight';
+  stateTimer = 0.6; // brief freeze before FIGHT
+}
+
+function showVSIntro() {
+  gameState = 'intro';
+  stateTimer = 2.6;
+  inputLocked = true;
+}
+
+function endRound(winner, reason) {
+  if (gameState !== 'fight') return;
+  gameState = 'roundend';
+  inputLocked = true;
+  stateTimer = 2.4;
+  if (winner) {
+    winner.wins++;
+    roundBanner = (reason === 'time' ? 'TIME UP! ' : 'K.O.! ') + winner.name + ' WINS ROUND ' + round;
+    sfx.roundWin();
+  } else {
+    roundBanner = "TIME UP! IT'S A DRAW";
+  }
+}
+
+function afterRoundEnd() {
+  if (p1.wins >= 2 || p2.wins >= 2) {
+    const winner = p1.wins > p2.wins ? p1 : p2;
+    matchWinnerName = winner.name;
+    gameState = 'matchend';
+    spawnConfetti();
+    showMatchEndOverlay(winner);
+  } else {
+    round++;
+    startRound();
+  }
+}
+
+function showMatchEndOverlay(winner) {
+  const ov = document.getElementById('overlay');
+  const cpuNote = gameMode === '1p' && winner === p1 ? '<div class="sub" style="color:#7cffb0">You out-dueled the CPU!</div>' : '';
+  ov.innerHTML = `
+    <h1>🏆 ${winner.name}<br>WINS THE SHOWDOWN!</h1>
+    <div class="sub">Final Score: Billy ${p1.wins} — Elton ${p2.wins}</div>
+    ${cpuNote}
+    <div class="modeBtns">
+      <button class="modeBtn" id="rematchBtn">🔁 REMATCH</button>
+      <button class="modeBtn alt" id="menuBtn">🏠 MAIN MENU</button>
+    </div>
+  `;
+  ov.style.display = 'flex';
+  document.getElementById('rematchBtn').addEventListener('click', () => { ensureAudio(); startMatch(gameMode); });
+  document.getElementById('menuBtn').addEventListener('click', () => { showMainMenu(); });
+}
+
+function showMainMenu() {
+  gameState = 'menu';
+  const ov = document.getElementById('overlay');
+  ov.innerHTML = `
+    <h1>🎹 PIANO MEN SHOWDOWN 🌟</h1>
+    <div class="sub">Billy Joel &nbsp;VS&nbsp; Elton John — Prime Era Duel</div>
+    <div class="desc">
+      Two legends throw down atop a grand piano under the stadium lights.
+      Billy Joel blasts musical notes from his hands. Elton John hurls his
+      star-shaped glasses. Best of 3 rounds wins the show!
+    </div>
+    <div class="modeBtns">
+      <button class="modeBtn" id="btn1p">🎤 1 PLAYER<br><small style="font-weight:normal">vs CPU Elton</small></button>
+      <button class="modeBtn alt" id="btn2p">🎸 2 PLAYER<br><small style="font-weight:normal">local duel</small></button>
+    </div>
+    <div class="keys">
+      <b>P1 Billy:</b> A/D move · W jump · S block/crouch · F punch · G kick · H notes<br>
+      <b>P2 Elton (2P):</b> ←/→ move · ↑ jump · ↓ block/crouch · N punch · M kick · , glasses<br>
+      Touch controls below always drive Player 1.
+    </div>
+  `;
+  ov.style.display = 'flex';
+  document.getElementById('btn1p').addEventListener('click', () => { ensureAudio(); startMatch('1p'); });
+  document.getElementById('btn2p').addEventListener('click', () => { ensureAudio(); startMatch('2p'); });
+}
+
+function spawnConfetti() {
+  confetti = [];
+  const colors = ['#ffd54a', '#ff2fb0', '#4ad9ff', '#7cffb0', '#ff6b6b'];
+  for (let i = 0; i < 90; i++) {
+    confetti.push({
+      x: rand(0, WORLD_W), y: rand(-400, 0),
+      vy: rand(60, 160), vx: rand(-30, 30),
+      size: rand(4, 9), color: colors[Math.floor(Math.random() * colors.length)],
+      rot: rand(0, Math.PI * 2), vr: rand(-4, 4),
+    });
+  }
+}
+
+/* ============================= Combat helpers ============================= */
+function attackBox(p) {
+  // returns {x,y,w,h} active hitbox in front of player, or null
+  const [s, e] = ACTIVE[p.state] || [0, 0];
+  const prog = p.stateT / DURATIONS[p.state];
+  if (prog < s || prog > e) return null;
+  const reach = p.state === 'kick' ? 95 : 70;
+  const h = p.state === 'kick' ? 30 : 24;
+  const cx = p.x + p.facing * (30 + reach / 2);
+  const cy = p.state === 'kick' ? p.y - 55 : p.y - 95;
+  return { x: cx, y: cy, w: reach, h };
+}
+
+function bodyBox(p) {
+  const crouch = (p.state === 'crouch' || p.state === 'hurt' && p.wasCrouch);
+  const h = crouch ? 80 : 145;
+  return { x: p.x, y: p.y - h / 2 - 2, w: 46, h };
+}
+
+function damageFighter(p, dmg, fromX, opts) {
+  opts = opts || {};
+  const blocking = p.state === 'crouch' && !opts.unblockable;
+  let final = dmg;
+  if (blocking) {
+    final = dmg * 0.18;
+    sfx.block();
+    spawnParticles(p.x + (fromX < p.x ? -1 : 1) * 26, p.y - 60, '#9adfff', 6, 'spark');
+  } else {
+    sfx.hit();
+    p.state = 'hurt';
+    p.stateT = 0;
+    p.wasCrouch = false;
+    spawnParticles(p.x, p.y - 90, '#fff', 10, 'spark');
+    hitstop = 0.05;
+    shakeTimer = 0.15; shakeMag = 5;
+    const push = (p.x < fromX ? -1 : 1) * 26;
+    p.x = clamp(p.x + push, MIN_X, MAX_X);
+  }
+  p.health = clamp(p.health - final, 0, 100);
+  p.hurtFlash = 0.18;
+  if (p.health <= 0 && p.state !== 'ko') {
+    p.state = 'ko'; p.stateT = 0; p.koFall = 0;
+    sfx.ko();
+    shakeTimer = 0.35; shakeMag = 10;
+    spawnParticles(p.x, p.y - 90, '#ffd54a', 22, 'burst');
+  }
+}
+
+function spawnParticles(x, y, color, n, kind) {
+  for (let i = 0; i < n; i++) {
+    particles.push({
+      x, y, kind,
+      vx: rand(-140, 140), vy: rand(-180, -20),
+      life: rand(0.3, 0.6), maxLife: 0.6, color,
+      size: rand(2, 5),
+    });
+  }
+}
+
+/* ============================= Update ============================= */
+function updateFighter(p, opp, key, dt) {
+  const wasGrounded = p.grounded;
+  p.stateT += dt * 1000;
+  p.specialCd = Math.max(0, p.specialCd - dt);
+  p.hurtFlash = Math.max(0, p.hurtFlash - dt);
+
+  const locked = inputLocked || p.state === 'ko' || p.state === 'win';
+  const attacking = p.state === 'punch' || p.state === 'kick' || p.state === 'special';
+  const canAct = !locked && p.state !== 'hurt' && !attacking;
+
+  // auto-face opponent (unless mid-attack/hurt lock)
+  if (!attacking && p.state !== 'hurt' && p.state !== 'ko') {
+    p.facing = opp.x >= p.x ? 1 : -1;
+  }
+
+  let moving = false;
+  if (canAct) {
+    if (key.down) {
+      p.state = 'crouch';
+    } else if (key.up && p.grounded) {
+      p.vy = JUMP_V; p.grounded = false; p.state = 'jump'; sfx.jump();
+    } else if (key.punch) {
+      p.state = 'punch'; p.stateT = 0; p.hasHitThisAttack = false;
+      sfx.punch();
+    } else if (key.kick) {
+      p.state = 'kick'; p.stateT = 0; p.hasHitThisAttack = false;
+      sfx.kick();
+    } else if (key.special && p.specialCd <= 0) {
+      p.state = 'special'; p.stateT = 0; p.hasHitThisAttack = false;
+      p.specialCd = 1.0;
+    } else if (key.left || key.right) {
+      const dir = key.left ? -1 : 1;
+      p.x += dir * MOVE_SPEED * dt;
+      p.x = clamp(p.x, MIN_X, MAX_X);
+      p.state = p.grounded ? 'walk' : 'jump';
+      p.walkPhase += dt * 9;
+      moving = true;
+    } else {
+      p.state = p.grounded ? 'idle' : 'jump';
+    }
+  } else if (!locked && p.state === 'crouch') {
+    // allow leaving crouch/block by releasing down (handled next frame via canAct once state resets)
+    if (!key.down) p.state = 'idle';
+  }
+
+  // mid-air horizontal drift while jumping (even without canAct gating extra state, still allow steering)
+  if (!p.grounded && !locked && p.state !== 'hurt') {
+    if (key.left) p.x = clamp(p.x - MOVE_SPEED * 0.75 * dt, MIN_X, MAX_X);
+    if (key.right) p.x = clamp(p.x + MOVE_SPEED * 0.75 * dt, MIN_X, MAX_X);
+  }
+
+  // gravity
+  if (!p.grounded) {
+    p.vy += GRAVITY * dt;
+    p.y += p.vy * dt;
+    if (p.y >= GROUND_Y) { p.y = GROUND_Y; p.vy = 0; p.grounded = true; if (p.state === 'jump') p.state = 'idle'; }
+  }
+
+  // attack -> special projectile spawn
+  if (p.state === 'special') {
+    const prog = p.stateT / DURATIONS.special;
+    if (prog >= 0.32 && prog < 0.42 && !p.projSpawned) {
+      p.projSpawned = true;
+      spawnProjectile(p);
+    }
+  } else {
+    p.projSpawned = false;
+  }
+
+  // attack hit detection
+  if (attacking && !p.hasHitThisAttack) {
+    const box = attackBox(p);
+    if (box) {
+      const ob = bodyBox(opp);
+      if (opp.state !== 'ko' && rectOverlap(box.x, box.y, box.w, box.h, ob.x, ob.y, ob.w, ob.h)) {
+        p.hasHitThisAttack = true;
+        const dmg = p.state === 'kick' ? 9 : 6;
+        damageFighter(opp, dmg, p.x);
+      }
+    }
+  }
+
+  // state duration expiry
+  const dur = DURATIONS[p.state];
+  if (dur && p.stateT >= dur) {
+    if (p.state === 'hurt') p.state = p.grounded ? 'idle' : 'jump';
+    else if (p.state === 'punch' || p.state === 'kick' || p.state === 'special') p.state = p.grounded ? 'idle' : 'jump';
+  }
+
+  // ko fall animation progress
+  if (p.state === 'ko') {
+    p.koFall = Math.min(1, p.koFall + dt * 2.4);
+    if (!p.grounded) { p.vy += GRAVITY * dt; p.y += p.vy * dt; if (p.y >= GROUND_Y) { p.y = GROUND_Y; p.vy = 0; p.grounded = true; } }
+  }
+
+  p.displayHealth = lerp(p.displayHealth, p.health, Math.min(1, dt * 6));
+  p.bobPhase += dt * (moving ? 10 : 3.2);
+}
+
+function spawnProjectile(p) {
+  const originY = p.y - 100;
+  const originX = p.x + p.facing * 34;
+  if (p.side === 'left') {
+    sfx.note();
+    projectiles.push({ owner: p, x: originX, y: originY, vx: p.facing * 480, vy: 0, kind: 'note', rot: 0, dmg: 12, r: 16 });
+  } else {
+    sfx.glasses();
+    projectiles.push({ owner: p, x: originX, y: originY, vx: p.facing * 460, vy: -40, kind: 'glasses', rot: 0, dmg: 12, r: 18 });
+  }
+}
+
+function updateProjectiles(dt) {
+  projectiles = projectiles.filter(pr => {
+    pr.x += pr.vx * dt;
+    pr.y += pr.vy * dt;
+    if (pr.kind === 'glasses') pr.vy += 60 * dt;
+    pr.rot += dt * (pr.kind === 'glasses' ? 10 : 4);
+    if (pr.x < -40 || pr.x > WORLD_W + 40) return false;
+    const target = pr.owner === p1 ? p2 : p1;
+    if (target.state !== 'ko') {
+      const ob = bodyBox(target);
+      if (rectOverlap(pr.x, pr.y, pr.r * 2, pr.r * 2, ob.x, ob.y, ob.w, ob.h)) {
+        damageFighter(target, pr.dmg, pr.x);
+        spawnParticles(pr.x, pr.y, pr.kind === 'note' ? '#ffd54a' : '#ff2fb0', 12, 'burst');
+        return false;
+      }
+    }
+    return true;
+  });
+}
+
+function updateParticles(dt) {
+  particles = particles.filter(pt => {
+    pt.life -= dt;
+    pt.x += pt.vx * dt;
+    pt.y += pt.vy * dt;
+    pt.vy += 400 * dt;
+    return pt.life > 0;
+  });
+}
+
+function updateConfetti(dt) {
+  confetti.forEach(c => {
+    c.y += c.vy * dt;
+    c.x += c.vx * dt;
+    c.rot += c.vr * dt;
+    if (c.y > WORLD_H + 20) { c.y = -20; c.x = rand(0, WORLD_W); }
+  });
+}
+
+function update(dt) {
+  if (hitstop > 0) { hitstop -= dt; return; }
+  if (shakeTimer > 0) shakeTimer -= dt;
+
+  if (gameState === 'menu') return;
+
+  if (gameState === 'intro') {
+    stateTimer -= dt;
+    if (stateTimer <= 0) startRound();
+    return;
+  }
+
+  if (gameState === 'fight') {
+    if (stateTimer > 0) {
+      stateTimer -= dt;
+      if (stateTimer <= 0) { inputLocked = false; }
+    }
+    if (fightBanner > 0) fightBanner -= dt;
+
+    if (gameMode === '1p') updateAI(dt);
+
+    updateFighter(p1, p2, inputs.p1, dt);
+    updateFighter(p2, p1, inputs.p2, dt);
+    updateProjectiles(dt);
+    updateParticles(dt);
+
+    if (!inputLocked) {
+      roundTimer -= dt;
+      if (roundTimer <= 0) { roundTimer = 0; endRound(p1.health === p2.health ? null : (p1.health > p2.health ? p1 : p2), 'time'); }
+    }
+
+    if (p1.health <= 0 && p1.koFall >= 0.95) endRound(p2, 'ko');
+    else if (p2.health <= 0 && p2.koFall >= 0.95) endRound(p1, 'ko');
+    return;
+  }
+
+  if (gameState === 'roundend') {
+    updateFighter(p1, p2, { left: false, right: false, up: false, down: false, punch: false, kick: false, special: false }, dt);
+    updateFighter(p2, p1, { left: false, right: false, up: false, down: false, punch: false, kick: false, special: false }, dt);
+    updateParticles(dt);
+    stateTimer -= dt;
+    if (stateTimer <= 0) afterRoundEnd();
+    return;
+  }
+
+  if (gameState === 'matchend') {
+    updateParticles(dt);
+    updateConfetti(dt);
+    const winner = p1.wins > p2.wins ? p1 : p2;
+    winner.state = 'win';
+    return;
+  }
+}
+
+/* ============================= Drawing ============================= */
+function W() { return canvas.width; }
+function H() { return canvas.height; }
+
+function drawBackground(t) {
+  ctx.fillStyle = '#0a0518';
+  ctx.fillRect(0, 0, WORLD_W, WORLD_H);
+
+  // sky gradient
+  const sky = ctx.createLinearGradient(0, 0, 0, 260);
+  sky.addColorStop(0, '#1c0f3d');
+  sky.addColorStop(0.6, '#2a1552');
+  sky.addColorStop(1, '#3a1a4d');
+  ctx.fillStyle = sky;
+  ctx.fillRect(0, 0, WORLD_W, 260);
+
+  // spotlight beams
+  ctx.save();
+  ctx.globalAlpha = 0.16 + Math.sin(t * 1.3) * 0.05;
+  for (let i = 0; i < 4; i++) {
+    const bx = 100 + i * 240 + Math.sin(t * 0.4 + i) * 30;
+    const grad = ctx.createLinearGradient(bx, -10, bx + 160, 260);
+    grad.addColorStop(0, i % 2 ? '#ff2fb0' : '#4ad9ff');
+    grad.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grad;
+    ctx.beginPath();
+    ctx.moveTo(bx, -10);
+    ctx.lineTo(bx + 220, -10);
+    ctx.lineTo(bx + 60, 260);
+    ctx.lineTo(bx - 60, 260);
+    ctx.closePath();
+    ctx.fill();
+  }
+  ctx.restore();
+
+  // crowd silhouette tiers
+  for (let tier = 0; tier < 3; tier++) {
+    const y = 80 + tier * 28;
+    ctx.fillStyle = `rgba(10,4,20,${0.55 + tier * 0.15})`;
+    ctx.beginPath();
+    ctx.moveTo(0, y + 26);
+    for (let x = 0; x <= WORLD_W; x += 18) {
+      const bump = Math.sin(x * 0.1 + tier) * 4 + Math.sin(x * 0.35 + tier * 3) * 3;
+      ctx.lineTo(x, y + bump);
+    }
+    ctx.lineTo(WORLD_W, y + 40);
+    ctx.lineTo(0, y + 40);
+    ctx.closePath();
+    ctx.fill();
+    // tiny crowd sparkle dots (phone lights)
+    ctx.fillStyle = 'rgba(255,213,74,0.5)';
+    for (let i = 0; i < 14; i++) {
+      const sx = (i * 67 + tier * 40 + t * 12) % WORLD_W;
+      const sy = y + 6 + ((i * 37) % 18);
+      if (Math.sin(t * 6 + i * tier) > 0.5) ctx.fillRect(sx, sy, 1.6, 1.6);
+    }
+  }
+
+  // stage floor haze
+  const haze = ctx.createLinearGradient(0, 230, 0, 300);
+  haze.addColorStop(0, 'rgba(255,213,74,0)');
+  haze.addColorStop(1, 'rgba(255,213,74,0.10)');
+  ctx.fillStyle = haze;
+  ctx.fillRect(0, 230, WORLD_W, 70);
+}
+
+function drawPiano() {
+  // propped open lid (big black wedge with gold rim, behind the players)
+  ctx.save();
+  ctx.fillStyle = '#0c0b12';
+  ctx.beginPath();
+  ctx.moveTo(150, 250);
+  ctx.lineTo(340, 60);
+  ctx.lineTo(560, 100);
+  ctx.lineTo(430, 250);
+  ctx.closePath();
+  ctx.fill();
+  const lidShine = ctx.createLinearGradient(150, 60, 560, 250);
+  lidShine.addColorStop(0, 'rgba(255,255,255,0.08)');
+  lidShine.addColorStop(0.5, 'rgba(255,255,255,0.02)');
+  lidShine.addColorStop(1, 'rgba(255,255,255,0.0)');
+  ctx.fillStyle = lidShine;
+  ctx.fill();
+  ctx.strokeStyle = '#ffd54a';
+  ctx.lineWidth = 2;
+  ctx.globalAlpha = 0.7;
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // curved side silhouette (decorative bout), soft, behind top
+  ctx.save();
+  ctx.globalAlpha = 0.5;
+  ctx.fillStyle = '#08060c';
+  ctx.beginPath();
+  ctx.moveTo(770, 250);
+  ctx.quadraticCurveTo(880, 260, 860, 340);
+  ctx.quadraticCurveTo(840, 380, 770, 385);
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+
+  // main top surface (the fighting platform) - wide trapezoid, glossy black
+  ctx.save();
+  const topGrad = ctx.createLinearGradient(0, 250, 0, 380);
+  topGrad.addColorStop(0, '#1c1a24');
+  topGrad.addColorStop(0.5, '#100e16');
+  topGrad.addColorStop(1, '#050408');
+  ctx.fillStyle = topGrad;
+  ctx.beginPath();
+  ctx.moveTo(190, 255);
+  ctx.lineTo(710, 255);
+  ctx.lineTo(800, 380);
+  ctx.lineTo(100, 380);
+  ctx.closePath();
+  ctx.fill();
+
+  // glossy highlight streak
+  ctx.globalAlpha = 0.12;
+  ctx.fillStyle = '#ffffff';
+  ctx.beginPath();
+  ctx.moveTo(260, 270);
+  ctx.lineTo(640, 270);
+  ctx.lineTo(600, 300);
+  ctx.lineTo(300, 300);
+  ctx.closePath();
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  // gold trim outline
+  ctx.strokeStyle = '#ffd54a';
+  ctx.lineWidth = 3;
+  ctx.globalAlpha = 0.85;
+  ctx.beginPath();
+  ctx.moveTo(190, 255);
+  ctx.lineTo(710, 255);
+  ctx.lineTo(800, 380);
+  ctx.lineTo(100, 380);
+  ctx.closePath();
+  ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.restore();
+
+  // keyboard strip along the very front edge
+  ctx.save();
+  const keyTop = 380, keyBot = 404;
+  ctx.fillStyle = '#eee6d0';
+  ctx.fillRect(90, keyTop, 720, keyBot - keyTop);
+  const nKeys = 44;
+  const kw = 720 / nKeys;
+  ctx.strokeStyle = '#33302a';
+  ctx.lineWidth = 1;
+  for (let i = 0; i < nKeys; i++) {
+    ctx.strokeRect(90 + i * kw, keyTop, kw, keyBot - keyTop);
+  }
+  ctx.fillStyle = '#141014';
+  for (let i = 0; i < nKeys; i++) {
+    if ([1, 2, 4, 5, 6].includes(i % 7)) {
+      ctx.fillRect(90 + i * kw - kw * 0.28, keyTop, kw * 0.56, (keyBot - keyTop) * 0.62);
+    }
+  }
+  ctx.restore();
+
+  // three thick legs
+  ctx.fillStyle = '#0a080d';
+  [150, 450, 750].forEach((lx, i) => {
+    ctx.beginPath();
+    ctx.moveTo(lx - 16, 404);
+    ctx.lineTo(lx + 16, 404);
+    ctx.lineTo(lx + 9, 470);
+    ctx.lineTo(lx - 9, 470);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#ffd54a';
+    ctx.fillRect(lx - 9, 464, 18, 6);
+    ctx.fillStyle = '#0a080d';
+  });
+}
+
+/* ---- fighter drawing ---- */
+const PALETTES = {
+  billy: { shirt: '#f2ead6', vest: '#1c2340', tie: '#c0392b', pants: '#171b2e', hair: '#241811', skin: '#e3ad81', shoe: '#0c0c10' },
+  elton: { jacketA: '#ff2fb0', jacketB: '#ffd54a', pants: '#e9e7f2', hair: '#d98b3a', skin: '#e3b088', lens: '#ff2fb0', frame: '#ffd54a', shoe: '#f2ead6' },
+};
+
+function limb(c, px, py, ang, len, w, color) {
+  c.save();
+  c.translate(px, py);
+  c.rotate(ang);
+  c.fillStyle = color;
+  rr(c, -w / 2, 0, w, len, w / 2);
+  c.fill();
+  c.restore();
+}
+
+function drawFighter(p) {
+  const pal = PALETTES[p.color];
+  const facing = p.facing;
+  const isCrouch = p.state === 'crouch';
+  const isJump = p.state === 'jump' || !p.grounded;
+  const isPunch = p.state === 'punch';
+  const isKick = p.state === 'kick';
+  const isSpecial = p.state === 'special';
+  const isHurt = p.state === 'hurt';
+  const isKo = p.state === 'ko';
+  const isWin = p.state === 'win';
+  const prog = DURATIONS[p.state] ? clamp(p.stateT / DURATIONS[p.state], 0, 1) : 0;
+
+  const bob = isJump ? 0 : Math.sin(p.bobPhase) * 2.2;
+  const squat = isCrouch ? 34 : 0;
+
+  ctx.save();
+  // shadow
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = '#000';
+  ctx.beginPath();
+  ctx.ellipse(p.x, GROUND_Y + 8, 34 - squat * 0.3, 8, 0, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.globalAlpha = 1;
+
+  ctx.translate(p.x, p.y - bob);
+
+  if (isKo) {
+    const fall = p.koFall;
+    ctx.rotate(facing * -Math.PI / 2 * fall);
+    ctx.translate(0, -fall * 30);
+  }
+  if (isHurt) {
+    ctx.translate((Math.random() - 0.5) * 3, 0);
+  }
+
+  ctx.scale(facing, 1);
+  ctx.translate(0, 0);
+
+  const hipY = -70 + squat * 0.5;
+  const shoulderY = -118 + squat * 0.55;
+  const headY = -140 + squat * 0.6;
+
+  // ---- legs ----
+  let backLegAng = 0.12, frontLegAng = -0.12;
+  if (p.state === 'walk') {
+    backLegAng = Math.sin(p.walkPhase) * 0.55;
+    frontLegAng = -Math.sin(p.walkPhase) * 0.55;
+  } else if (isJump) {
+    backLegAng = 0.5; frontLegAng = -0.35;
+  } else if (isKick) {
+    const kp = clamp((prog - 0.2) / 0.5, 0, 1);
+    frontLegAng = -Math.PI / 2.1 * Math.sin(kp * Math.PI);
+    backLegAng = 0.25;
+  } else if (isCrouch) {
+    backLegAng = 0.3; frontLegAng = -0.3;
+  } else if (isKo) {
+    backLegAng = 0.2; frontLegAng = 0.35;
+  }
+  const legLen = 70 - squat * 0.55;
+  limb(ctx, -10, hipY, backLegAng, legLen, 20, pal.pants || pal.jacketB);
+  limb(ctx, 10, hipY, frontLegAng, legLen, 20, pal.pants || pal.jacketB);
+  // shoes
+  ctx.save();
+  ctx.fillStyle = pal.shoe;
+  ctx.translate(-10, hipY); ctx.rotate(backLegAng);
+  rr(ctx, -11, legLen - 6, 24, 12, 4); ctx.fill();
+  ctx.restore();
+  ctx.save();
+  ctx.fillStyle = pal.shoe;
+  ctx.translate(10, hipY); ctx.rotate(frontLegAng);
+  rr(ctx, -11, legLen - 6, 24, 12, 4); ctx.fill();
+  ctx.restore();
+
+  // ---- torso ----
+  ctx.save();
+  const torsoH = shoulderY - hipY;
+  let torsoLean = 0;
+  if (isHurt) torsoLean = -0.18;
+  if (isKick) torsoLean = -0.1;
+  if (isSpecial) torsoLean = 0.05;
+  ctx.translate(0, hipY);
+  ctx.rotate(torsoLean);
+  if (p.color === 'billy') {
+    ctx.fillStyle = pal.shirt;
+    rr(ctx, -25, torsoH, 50, -torsoH, 14);
+    ctx.fill();
+    ctx.fillStyle = pal.vest;
+    ctx.beginPath();
+    ctx.moveTo(-22, 0); ctx.lineTo(-8, -torsoH + 10); ctx.lineTo(-22, -torsoH); ctx.closePath(); ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(22, 0); ctx.lineTo(8, -torsoH + 10); ctx.lineTo(22, -torsoH); ctx.closePath(); ctx.fill();
+    ctx.fillStyle = pal.tie;
+    ctx.fillRect(-4, -torsoH + 8, 8, torsoH - 14);
+  } else {
+    const jg = ctx.createLinearGradient(-25, -torsoH, 25, 0);
+    jg.addColorStop(0, pal.jacketA); jg.addColorStop(0.5, pal.jacketB); jg.addColorStop(1, pal.jacketA);
+    ctx.fillStyle = jg;
+    rr(ctx, -26, torsoH, 52, -torsoH, 16);
+    ctx.fill();
+    // sequin sparkle dots
+    ctx.fillStyle = 'rgba(255,255,255,0.55)';
+    for (let i = 0; i < 10; i++) {
+      const sx = -20 + (i * 47) % 40, sy = -(i * 13) % (torsoH - 6) - 4;
+      ctx.fillRect(sx, sy, 1.6, 1.6);
+    }
+  }
+  ctx.restore();
+
+  // ---- back arm ----
+  let backArmAng = 0.35;
+  if (p.state === 'walk') backArmAng = -Math.sin(p.walkPhase) * 0.4 + 0.2;
+  if (isKo) backArmAng = 0.6;
+  limb(ctx, -14, shoulderY, backArmAng, 52, 15, p.color === 'billy' ? pal.shirt : pal.jacketA);
+
+  // ---- head ----
+  ctx.save();
+  ctx.translate(0, headY);
+  let headTilt = 0;
+  if (isHurt) headTilt = -0.35;
+  if (isWin) headTilt = -0.15;
+  ctx.rotate(headTilt);
+  ctx.fillStyle = pal.skin;
+  ctx.beginPath();
+  ctx.arc(0, 0, 20, 0, Math.PI * 2);
+  ctx.fill();
+  if (p.color === 'billy') {
+    // dark swoopy hair + sideburns
+    ctx.fillStyle = pal.hair;
+    ctx.beginPath();
+    ctx.arc(0, -6, 20, Math.PI, Math.PI * 2);
+    ctx.fill();
+    ctx.fillRect(-20, -8, 6, 16);
+    ctx.fillRect(14, -8, 6, 16);
+    // face dot eyes
+    ctx.fillStyle = '#241811';
+    ctx.fillRect(7, -2, 3, 3);
+    ctx.fillRect(-2, -2, 3, 3);
+  } else {
+    // big blond hair
+    ctx.fillStyle = pal.hair;
+    ctx.beginPath();
+    ctx.arc(0, -4, 24, Math.PI * 0.95, Math.PI * 2.05);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(-4, -14, 12, 0, Math.PI * 2);
+    ctx.fill();
+    // giant star glasses
+    ctx.save();
+    ctx.translate(2, 2);
+    ctx.fillStyle = pal.frame;
+    starPath(ctx, -8, 0, 13, 6, 5, -Math.PI / 2);
+    ctx.fill();
+    starPath(ctx, 9, 0, 13, 6, 5, -Math.PI / 2);
+    ctx.fill();
+    ctx.fillStyle = pal.lens;
+    ctx.beginPath(); ctx.arc(-8, 0, 6.5, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(9, 0, 6.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // ---- front arm (drives punch/kick-wind/special) ----
+  let frontArmAng = -0.25;
+  if (p.state === 'walk') frontArmAng = Math.sin(p.walkPhase) * 0.4 - 0.2;
+  if (isPunch) {
+    const pp = clamp((prog - 0.15) / 0.5, 0, 1);
+    frontArmAng = lerp(-0.3, -Math.PI / 2, Math.sin(pp * Math.PI));
+  } else if (isSpecial) {
+    const sp = clamp(prog / 0.6, 0, 1);
+    frontArmAng = lerp(0.4, -Math.PI / 2 - 0.15, Math.sin(sp * Math.PI * 0.9));
+  } else if (isKo) {
+    frontArmAng = -0.6;
+  } else if (isWin) {
+    frontArmAng = -Math.PI * 0.78 + Math.sin(p.bobPhase) * 0.06;
+  } else if (isHurt) {
+    frontArmAng = 0.5;
+  }
+  const armColor = p.color === 'billy' ? pal.shirt : pal.jacketB;
+  limb(ctx, 14, shoulderY, frontArmAng, 52, 15, armColor);
+
+  // glove/fist glow when attacking
+  if ((isPunch || isSpecial) && prog > ACTIVE[p.state === 'special' ? 'special' : 'punch'][0]) {
+    ctx.save();
+    ctx.translate(14, shoulderY);
+    ctx.rotate(frontArmAng);
+    ctx.fillStyle = p.color === 'billy' ? '#ffe9a0' : '#ffb0e6';
+    ctx.globalAlpha = 0.9;
+    ctx.beginPath(); ctx.arc(0, 52, 10, 0, Math.PI * 2); ctx.fill();
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  // hurt flash overlay
+  if (p.hurtFlash > 0) {
+    ctx.save();
+    ctx.globalAlpha = p.hurtFlash * 2.4;
+    ctx.fillStyle = '#ff3b3b';
+    ctx.globalCompositeOperation = 'source-atop';
+    ctx.fillRect(-40, -160, 80, 170);
+    ctx.restore();
+  }
+
+  ctx.restore();
+}
+
+function drawProjectiles() {
+  projectiles.forEach(pr => {
+    ctx.save();
+    ctx.translate(pr.x, pr.y);
+    ctx.rotate(pr.rot);
+    if (pr.kind === 'note') {
+      ctx.fillStyle = '#ffd54a';
+      ctx.shadowColor = '#ffd54a';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.ellipse(-4, 6, 7, 5, -0.4, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillRect(2, -14, 3, 22);
+      ctx.beginPath();
+      ctx.moveTo(5, -14);
+      ctx.quadraticCurveTo(16, -10, 5, 0);
+      ctx.quadraticCurveTo(12, -6, 5, -8);
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#ffd54a';
+      starPath(ctx, 0, 0, 16, 7, 5, 0);
+      ctx.fill();
+      ctx.fillStyle = '#ff2fb0';
+      ctx.shadowColor = '#ff2fb0';
+      ctx.shadowBlur = 10;
+      ctx.beginPath(); ctx.arc(0, 0, 8, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.shadowBlur = 0;
+    ctx.restore();
+  });
+}
+
+function drawParticles() {
+  particles.forEach(pt => {
+    ctx.save();
+    ctx.globalAlpha = clamp(pt.life / pt.maxLife, 0, 1);
+    ctx.fillStyle = pt.color;
+    if (pt.kind === 'burst') {
+      ctx.beginPath(); ctx.arc(pt.x, pt.y, pt.size, 0, Math.PI * 2); ctx.fill();
+    } else {
+      ctx.fillRect(pt.x - pt.size / 2, pt.y - pt.size / 2, pt.size, pt.size);
+    }
+    ctx.restore();
+  });
+}
+
+function drawConfetti() {
+  confetti.forEach(c => {
+    ctx.save();
+    ctx.translate(c.x, c.y);
+    ctx.rotate(c.rot);
+    ctx.fillStyle = c.color;
+    ctx.fillRect(-c.size / 2, -c.size / 2, c.size, c.size * 0.5);
+    ctx.restore();
+  });
+}
+
+function healthBar(x, isRight, p) {
+  const w = 300, h = 22;
+  const pct = clamp(p.displayHealth / 100, 0, 1);
+  ctx.save();
+  ctx.fillStyle = '#1a1a1a';
+  rr(ctx, x, 34, w, h, 4); ctx.fill();
+  const barColor = pct > 0.5 ? '#5fe06a' : pct > 0.22 ? '#ffcf3f' : '#ff4a4a';
+  ctx.fillStyle = barColor;
+  const bw = w * pct;
+  if (isRight) rr(ctx, x + w - bw, 34, bw, h, 4);
+  else rr(ctx, x, 34, bw, h, 4);
+  ctx.fill();
+  ctx.strokeStyle = '#ffd54a';
+  ctx.lineWidth = 2;
+  rr(ctx, x, 34, w, h, 4); ctx.stroke();
+  ctx.restore();
+
+  // name
+  ctx.save();
+  ctx.font = 'bold 16px Arial';
+  ctx.fillStyle = '#ffe9a8';
+  ctx.textAlign = isRight ? 'right' : 'left';
+  ctx.fillText(p.name, isRight ? x + w : x, 26);
+  ctx.restore();
+
+  // round win pips (hand-drawn note icon - avoids missing-glyph fonts)
+  ctx.save();
+  for (let i = 0; i < 2; i++) {
+    const filled = i < p.wins;
+    const idx = isRight ? 1 - i : i;
+    const px = x + idx * 20 + 8;
+    const py = 66;
+    ctx.fillStyle = filled ? '#ffd54a' : 'rgba(255,213,74,0.25)';
+    ctx.strokeStyle = filled ? '#3a1a02' : 'rgba(58,26,2,0.25)';
+    ctx.lineWidth = 1;
+    // note head
+    ctx.beginPath();
+    ctx.ellipse(px, py + 4, 5, 3.6, -0.35, 0, Math.PI * 2);
+    ctx.fill();
+    // stem
+    ctx.fillRect(px + 4, py - 9, 2, 13);
+    // flag
+    ctx.beginPath();
+    ctx.moveTo(px + 6, py - 9);
+    ctx.quadraticCurveTo(px + 13, py - 6, px + 6, py - 1);
+    ctx.quadraticCurveTo(px + 10, py - 6, px + 6, py - 9);
+    ctx.fill();
+  }
+  ctx.restore();
+}
+
+function drawHUD() {
+  healthBar(30, false, p1);
+  healthBar(WORLD_W - 330, true, p2);
+
+  // timer
+  ctx.save();
+  ctx.font = 'bold 34px Arial';
+  ctx.fillStyle = '#fff';
+  ctx.textAlign = 'center';
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 4;
+  const secs = Math.ceil(roundTimer);
+  ctx.strokeText(secs, WORLD_W / 2, 55);
+  ctx.fillText(secs, WORLD_W / 2, 55);
+  ctx.font = 'bold 13px Arial';
+  ctx.fillStyle = '#ffd54a';
+  ctx.fillText('ROUND ' + round, WORLD_W / 2, 72);
+  ctx.restore();
+}
+
+function drawBanner(text, sub, alpha) {
+  ctx.save();
+  ctx.globalAlpha = alpha === undefined ? 1 : alpha;
+  ctx.textAlign = 'center';
+  ctx.font = 'bold 54px Arial';
+  ctx.fillStyle = '#ffd54a';
+  ctx.strokeStyle = '#3a1a02';
+  ctx.lineWidth = 6;
+  ctx.strokeText(text, WORLD_W / 2, 230);
+  ctx.fillText(text, WORLD_W / 2, 230);
+  if (sub) {
+    ctx.font = 'bold 20px Arial';
+    ctx.fillStyle = '#fff';
+    ctx.strokeText(sub, WORLD_W / 2, 262);
+    ctx.fillText(sub, WORLD_W / 2, 262);
+  }
+  ctx.restore();
+}
+
+function draw(t) {
+  ctx.save();
+  ctx.clearRect(0, 0, W(), H());
+  ctx.scale(S(), S());
+
+  if (shakeTimer > 0) {
+    ctx.translate((Math.random() - 0.5) * shakeMag, (Math.random() - 0.5) * shakeMag);
+  }
+
+  drawBackground(t);
+  drawPiano();
+
+  if (gameState !== 'menu') {
+    // draw back-to-front by x for slight depth (rarely matters, keep stable order)
+    const order = p1.x < p2.x ? [p1, p2] : [p2, p1];
+    order.forEach(drawFighter);
+    drawProjectiles();
+    drawParticles();
+    drawHUD();
+
+    if (gameState === 'intro') {
+      ctx.save();
+      ctx.globalAlpha = clamp(stateTimer / 0.6, 0, 1) < 1 ? 1 : 1;
+      drawBanner('BILLY JOEL', 'VS', 1);
+      ctx.font = 'bold 40px Arial';
+      ctx.fillStyle = '#ff2fb0';
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = '#2a0018'; ctx.lineWidth = 5;
+      ctx.strokeText('ELTON JOHN', WORLD_W / 2, 300);
+      ctx.fillText('ELTON JOHN', WORLD_W / 2, 300);
+      ctx.font = 'bold 22px Arial';
+      ctx.fillStyle = '#fff';
+      ctx.fillText('ROUND ' + round, WORLD_W / 2, 340);
+      ctx.restore();
+    }
+
+    if (gameState === 'fight' && fightBanner > 0) {
+      drawBanner('FIGHT!', '', clamp(fightBanner / 0.5, 0, 1));
+    }
+
+    if (gameState === 'roundend') {
+      drawBanner(roundBanner.includes('DRAW') ? 'DRAW!' : (roundBanner.indexOf('K.O') >= 0 ? 'K.O.!' : 'TIME UP!'), roundBanner, 1);
+    }
+
+    if (gameState === 'matchend') {
+      drawConfetti();
+    }
+  }
+
+  ctx.restore();
+}
+
+/* ============================= Main loop ============================= */
+function loop(ts) {
+  const dt = Math.min((ts - lastTime) / 1000, 0.05);
+  lastTime = ts;
+  update(dt);
+  draw(ts / 1000);
+  animFrame = requestAnimationFrame(loop);
+}
+
+// idle background render while on menu
+lastTime = performance.now();
+animFrame = requestAnimationFrame(loop);
+
+})();
+</script>
+</body>
+</html>
